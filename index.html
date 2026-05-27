@@ -77,6 +77,8 @@
       font-size: 15px;
       color: var(--text);
       background: var(--bg);
+      overflow-x: hidden;
+      max-width: 100%;
     }
 
     /* ===== レイアウト ===== */
@@ -548,6 +550,7 @@
     }
     .mp-stat-input:focus { outline: none; border-color: var(--primary-light); }
     .mp-stat-input:disabled { background: #f0f0f0; color: #bbb; }
+    .mp-stat-input-wide { width: 52px; }
     /* 詳細モーダル */
     .detail-section { margin-bottom: 16px; }
     .detail-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
@@ -772,6 +775,23 @@
       header h1 { font-size: 15px; }
       .btn { padding: 10px 14px; }
       #pitch-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+
+      /* 選手テーブル: 備考列をスマホで非表示 */
+      #player-table th:nth-child(4),
+      #player-table td:nth-child(4) { display: none; }
+
+      /* モーダル: スマホではパディングを縮小 */
+      .modal-overlay { padding: 8px; }
+      .modal-body { padding: 14px; }
+      .modal-header { padding: 14px 14px 12px; }
+      .modal-footer { padding: 12px 14px; }
+
+      /* 試合モーダル選手行: スマホでは2行に折り返す */
+      .mp-row { flex-wrap: wrap; padding: 8px; }
+      .mp-name { min-width: 0; }
+      .mp-stats { width: 100%; justify-content: flex-end; padding-left: 46px; margin-top: 4px; }
+      .mp-stat-input { width: 38px; }
+      .mp-stat-input-wide { width: 44px; }
     }
   </style>
 </head>
@@ -1605,8 +1625,8 @@ function renderMatchPlayersList(existingPlayers = []) {
           </div>
           <div class="mp-stat-wrap">
             <span class="mp-stat-label">分</span>
-            <input type="number" class="mp-stat-input" id="mpm-${p.id}"
-              value="${minutes}" min="0" max="120" style="width:52px;" ${disabled}>
+            <input type="number" class="mp-stat-input mp-stat-input-wide" id="mpm-${p.id}"
+              value="${minutes}" min="0" max="120" ${disabled}>
           </div>
         </div>
       </div>`;
