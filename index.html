@@ -622,6 +622,11 @@
       transition: box-shadow 0.1s;
       z-index: 10;
     }
+    .p-icon.rect {
+      width: 72px;
+      height: 34px;
+      border-radius: 8px;
+    }
     .p-icon:active { cursor: grabbing; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 20; }
     .p-icon .p-num {
       font-size: 13px;
@@ -641,6 +646,10 @@
       white-space: nowrap;
       line-height: 1;
       margin-top: 1px;
+    }
+    .p-icon.rect .p-name {
+      font-size: 10px;
+      max-width: 68px;
     }
     /* ベンチエリア */
     #bench-area {
@@ -905,6 +914,7 @@
           <!-- 操作ボタン -->
           <div class="card" style="padding:14px;">
             <div style="display:flex;flex-direction:column;gap:8px;">
+              <button class="btn btn-ghost btn-sm" id="icon-shape-btn" onclick="toggleIconShape()" style="width:100%;">□ 長方形に切替</button>
               <button class="btn btn-ghost btn-sm" onclick="addEnemyIcon()" style="width:100%;">＋ 相手選手を追加</button>
               <button class="btn btn-danger btn-sm" onclick="confirmPitchReset()" style="width:100%;">🔄 ピッチをリセット</button>
             </div>
@@ -1890,6 +1900,14 @@ const PITCH = {
 
 let pitchState = PITCH.load();
 let _dragCtx = null; // { el, type:'pitch'|'bench'|'enemy-bench', startX, startY, iconData }
+let pitchIconShape = 'circle';
+
+function toggleIconShape() {
+  pitchIconShape = pitchIconShape === 'circle' ? 'rect' : 'circle';
+  const btn = document.getElementById('icon-shape-btn');
+  if (btn) btn.textContent = pitchIconShape === 'circle' ? '□ 長方形に切替' : '○ 丸に切替';
+  renderPitchIcons();
+}
 
 function initPitch() {
   document.getElementById('ally-color-picker').value  = pitchState.allyColor;
@@ -1966,10 +1984,12 @@ function renderPitchIcons() {
     const player = isAlly ? DB.getPlayers().find(p => p.id === icon.playerId) : null;
     const num  = isAlly ? (player ? player.number : '?') : icon.num;
     const fullName = isAlly ? (player ? player.name : '?') : `相手${icon.num}`;
-    const name     = fullName.length > 4 ? fullName.slice(0, 4) : fullName;
+    const maxLen   = pitchIconShape === 'rect' ? 6 : 4;
+    const name     = fullName.length > maxLen ? fullName.slice(0, maxLen) : fullName;
     const color    = isAlly ? pitchState.allyColor : pitchState.enemyColor;
+    const shapeClass = pitchIconShape === 'rect' ? ' rect' : '';
     return `
-      <div class="p-icon" id="picon-${icon.id}"
+      <div class="p-icon${shapeClass}" id="picon-${icon.id}"
         style="left:${icon.px*100}%;top:${icon.py*100}%;background:${color};"
         data-icon-id="${icon.id}" data-tooltip="${escHtml(fullName)}">
         <div class="p-num">${num}</div>
