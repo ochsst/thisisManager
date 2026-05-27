@@ -5,6 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>THIS IS 監督</title>
   <style>
+    /* ===== ログイン画面 ===== */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--primary-dark);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #login-screen.hidden { display: none; }
+    .login-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+    .login-logo { font-size: 52px; margin-bottom: 8px; }
+    .login-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+    }
+    .login-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .login-error {
+      background: #fef2f2;
+      color: var(--danger);
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .login-error.show { display: block; }
+
     /* ===== リセット・ベース ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -336,6 +382,77 @@
     @keyframes toastIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     @keyframes toastOut { from { opacity:1; } to { opacity:0; } }
 
+    /* ===== 先発/途中トグル ===== */
+    .mp-start-toggle {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1.5px solid;
+      cursor: pointer;
+      white-space: nowrap;
+      line-height: 1.4;
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+    }
+    .mp-start-toggle.is-starter {
+      background: #dcfce7; color: #15803d; border-color: #86efac;
+    }
+    .mp-start-toggle.is-sub {
+      background: #fef9c3; color: #a16207; border-color: #fde047;
+    }
+    .mp-start-toggle:disabled {
+      opacity: 0.3; cursor: default;
+    }
+
+    /* ===== 背番号ステッパー ===== */
+    .number-stepper {
+      display: flex;
+      align-items: center;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    .number-stepper:focus-within {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(45,146,71,0.12);
+    }
+    .stepper-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: var(--bg);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .stepper-btn:hover  { background: #dde8e0; }
+    .stepper-btn:active { background: #c6d9cb; }
+    .stepper-btn:disabled { opacity: 0.35; cursor: default; }
+    #player-number {
+      width: 64px;
+      border: none !important;
+      box-shadow: none !important;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      padding: 0 4px;
+      -moz-appearance: textfield;
+    }
+    #player-number::-webkit-outer-spin-button,
+    #player-number::-webkit-inner-spin-button { -webkit-appearance: none; }
+
     /* ===== データ管理 ===== */
     .data-overview-chip {
       background: var(--bg);
@@ -600,6 +717,54 @@
       position: relative;
     }
 
+    /* ===== ピッチアイコン ツールチップ ===== */
+    .p-icon { position: relative; }
+    .p-icon::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.82);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 50;
+    }
+    .p-icon:hover::after { opacity: 1; }
+
+    /* ===== ドラッグゴースト ===== */
+    #drag-ghost {
+      position: fixed;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      opacity: 0.75;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      border: 2.5px solid rgba(255,255,255,0.8);
+      transition: none;
+    }
+    #drag-ghost .p-num {
+      font-size: 14px; font-weight: 800; color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6); line-height: 1;
+    }
+    #drag-ghost .p-name {
+      font-size: 9px; font-weight: 700; color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+      max-width: 44px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; margin-top: 1px;
+    }
+
     /* ===== スマホ調整 ===== */
     @media (max-width: 600px) {
       .tab-panel { padding: 14px; }
@@ -611,6 +776,31 @@
   </style>
 </head>
 <body>
+<!-- ===== ログイン画面 ===== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⚽</div>
+    <div class="login-title">THIS IS 監督</div>
+    <div class="login-subtitle">ログインしてください</div>
+    <div class="login-error" id="login-error">IDまたはパスワードが違います</div>
+    <form onsubmit="doLogin(event)">
+      <div class="form-group" style="text-align:left;">
+        <label for="login-id" style="font-size:13px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">ID</label>
+        <input type="text" id="login-id" class="form-control" autocomplete="username"
+          placeholder="ID を入力" autofocus>
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label for="login-pw" style="font-size:13px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">パスワード</label>
+        <input type="password" id="login-pw" class="form-control" autocomplete="current-password"
+          placeholder="パスワードを入力">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px;font-size:15px;min-height:46px;">
+        ログイン
+      </button>
+    </form>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- ヘッダー -->
@@ -656,6 +846,7 @@
                 <th style="width:50px;">番号</th>
                 <th>名前</th>
                 <th style="width:80px;">ポジション</th>
+                <th>備考</th>
                 <th style="width:120px;">操作</th>
               </tr>
             </thead>
@@ -908,22 +1099,33 @@
       <div class="form-row">
         <div class="form-group">
           <label for="player-name">名前 <span style="color:var(--danger)">*</span></label>
-          <input type="text" id="player-name" class="form-control" placeholder="例: 鈴木 一郎" maxlength="20">
+          <input type="text" id="player-name" class="form-control" placeholder="例: 中田知良" maxlength="20">
         </div>
-        <div class="form-group" style="flex:0 0 90px;">
+        <div class="form-group" style="flex:0 0 auto;">
           <label for="player-number">背番号 <span style="color:var(--danger)">*</span></label>
-          <input type="number" id="player-number" class="form-control" placeholder="10" min="1" max="99">
+          <div class="number-stepper">
+            <button type="button" class="stepper-btn" id="stepper-minus" onclick="stepNumber(-1)" tabindex="-1">－</button>
+            <input type="number" id="player-number" inputmode="numeric" pattern="[0-9]*"
+              placeholder="1" min="1" max="99" autocomplete="off">
+            <button type="button" class="stepper-btn" id="stepper-plus"  onclick="stepNumber(1)"  tabindex="-1">＋</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center;">1 〜 99</div>
         </div>
       </div>
       <div class="form-group">
         <label for="player-position">ポジション <span style="color:var(--danger)">*</span></label>
         <select id="player-position" class="form-control">
           <option value="">-- 選択 --</option>
+          <option value="ー">ー</option>
           <option value="GK">GK（ゴールキーパー）</option>
           <option value="DF">DF（ディフェンダー）</option>
           <option value="MF">MF（ミッドフィールダー）</option>
           <option value="FW">FW（フォワード）</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label for="player-note">備考</label>
+        <textarea id="player-note" class="form-control" rows="3" placeholder="メモを入力（任意）" maxlength="200"></textarea>
       </div>
     </div>
     <div class="modal-footer">
@@ -1053,9 +1255,63 @@ function showToast(msg, type = 'success') {
 }
 
 function positionBadge(pos) {
+  if (!pos || pos === 'ー') return `<span class="badge" style="background:#e5e7eb;color:#6b7280;">ー</span>`;
   const cls = { GK:'badge-gk', DF:'badge-df', MF:'badge-mf', FW:'badge-fw' }[pos] || '';
   return `<span class="badge ${cls}">${pos}</span>`;
 }
+
+// ============================================================
+// ログイン認証
+// ============================================================
+(function () {
+  const AUTH_ID = 'thisis';
+  const AUTH_PW = 'football';
+  const SESSION_KEY = 'thisis_manager_auth';
+
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    document.getElementById('login-screen').classList.add('hidden');
+  }
+
+  window.doLogin = function (e) {
+    e.preventDefault();
+    const id = document.getElementById('login-id').value;
+    const pw = document.getElementById('login-pw').value;
+    const err = document.getElementById('login-error');
+    if (id === AUTH_ID && pw === AUTH_PW) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      document.getElementById('login-screen').classList.add('hidden');
+      err.classList.remove('show');
+    } else {
+      err.classList.add('show');
+      document.getElementById('login-pw').value = '';
+      document.getElementById('login-pw').focus();
+    }
+  };
+})();
+
+// ============================================================
+// 背番号ステッパー
+// ============================================================
+function stepNumber(delta) {
+  const input = document.getElementById('player-number');
+  const cur   = parseInt(input.value, 10);
+  const next  = isNaN(cur) ? (delta > 0 ? 1 : 99) : Math.min(99, Math.max(1, cur + delta));
+  input.value = next;
+  updateStepperBtns(next);
+}
+
+function updateStepperBtns(val) {
+  const n = parseInt(val, 10);
+  const minus = document.getElementById('stepper-minus');
+  const plus  = document.getElementById('stepper-plus');
+  if (minus) minus.disabled = n <= 1;
+  if (plus)  plus.disabled  = n >= 99;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('player-number');
+  if (input) input.addEventListener('input', () => updateStepperBtns(input.value));
+});
 
 // ============================================================
 // タブ切り替え
@@ -1097,6 +1353,7 @@ function renderPlayers() {
       <td style="font-weight:700; text-align:center;">${p.number}</td>
       <td>${escHtml(p.name)}</td>
       <td>${positionBadge(p.position)}</td>
+      <td style="font-size:13px;color:var(--text-muted);">${escHtml(p.note || '')}</td>
       <td class="td-actions">
         <button class="btn btn-ghost btn-sm" onclick="openPlayerModal('${p.id}')">編集</button>
         <button class="btn btn-danger btn-sm" onclick="confirmDeletePlayer('${p.id}')">削除</button>
@@ -1118,6 +1375,7 @@ function openPlayerModal(id = null) {
   document.getElementById('player-name').value = '';
   document.getElementById('player-number').value = '';
   document.getElementById('player-position').value = '';
+  document.getElementById('player-note').value = '';
 
   if (id) {
     const players = DB.getPlayers();
@@ -1128,11 +1386,13 @@ function openPlayerModal(id = null) {
     document.getElementById('player-name').value = p.name;
     document.getElementById('player-number').value = p.number;
     document.getElementById('player-position').value = p.position;
+    document.getElementById('player-note').value = p.note || '';
   } else {
     titleEl.textContent = '選手を追加';
   }
 
   modal.classList.add('open');
+  updateStepperBtns(document.getElementById('player-number').value);
   setTimeout(() => document.getElementById('player-name').focus(), 100);
 }
 
@@ -1144,11 +1404,12 @@ function savePlayer() {
   const name     = document.getElementById('player-name').value.trim();
   const number   = parseInt(document.getElementById('player-number').value, 10);
   const position = document.getElementById('player-position').value;
+  const note     = document.getElementById('player-note').value.trim();
   const editId   = document.getElementById('player-edit-id').value;
 
   if (!name) { showToast('名前を入力してください', 'error'); return; }
   if (!number || number < 1 || number > 99) { showToast('背番号は1〜99で入力してください', 'error'); return; }
-  if (!position) { showToast('ポジションを選択してください', 'error'); return; }
+  if (position === '') { showToast('ポジションを選択してください', 'error'); return; }
 
   let players = DB.getPlayers();
 
@@ -1157,11 +1418,11 @@ function savePlayer() {
   if (dup) { showToast(`背番号 ${number} はすでに使われています（${dup.name}）`, 'error'); return; }
 
   if (editId) {
-    players = players.map(p => p.id === editId ? { ...p, name, number, position } : p);
+    players = players.map(p => p.id === editId ? { ...p, name, number, position, note } : p);
     showToast('選手情報を更新しました');
   } else {
     if (players.length >= 30) { showToast('選手登録は最大30人です', 'error'); return; }
-    players.push({ id: uuid(), name, number, position });
+    players.push({ id: uuid(), name, number, position, note });
     showToast('選手を追加しました');
   }
 
@@ -1318,6 +1579,9 @@ function renderMatchPlayersList(existingPlayers = []) {
     const goals    = ep ? ep.goals   : 0;
     const assists  = ep ? ep.assists : 0;
     const minutes  = ep ? ep.minutes : 0;
+    const isStarter = ep ? ep.start !== false : true;
+    const toggleCls = isStarter ? 'is-starter' : 'is-sub';
+    const toggleTxt = isStarter ? '先発' : '途中';
     return `
       <div class="mp-row${ep ? ' is-checked' : ''}" id="mprow-${p.id}">
         <input type="checkbox" class="mp-check" id="mpcheck-${p.id}"
@@ -1325,6 +1589,9 @@ function renderMatchPlayersList(existingPlayers = []) {
           onchange="toggleMatchPlayer('${p.id}', this.checked)">
         <span class="mp-num">#${p.number}</span>
         <label for="mpcheck-${p.id}" class="mp-name">${escHtml(p.name)}</label>
+        <button type="button" class="mp-start-toggle ${toggleCls}" id="mpstart-${p.id}"
+          data-value="${isStarter ? 'starter' : 'sub'}"
+          onclick="toggleStartBtn('${p.id}')" ${disabled}>${toggleTxt}</button>
         <div class="mp-stats">
           <div class="mp-stat-wrap">
             <span class="mp-stat-label">G</span>
@@ -1347,15 +1614,28 @@ function renderMatchPlayersList(existingPlayers = []) {
 }
 
 function toggleMatchPlayer(playerId, checked) {
-  const row = document.getElementById(`mprow-${playerId}`);
+  const row    = document.getElementById(`mprow-${playerId}`);
   const inputs = ['mpg-', 'mpa-', 'mpm-'].map(p => document.getElementById(p + playerId));
+  const toggle = document.getElementById(`mpstart-${playerId}`);
   if (checked) {
     row.classList.add('is-checked');
     inputs.forEach(el => { el.disabled = false; if (el.id.startsWith('mpm-')) el.value = el.value || 90; });
+    if (toggle) toggle.disabled = false;
   } else {
     row.classList.remove('is-checked');
     inputs.forEach(el => { el.disabled = true; });
+    if (toggle) toggle.disabled = true;
   }
+}
+
+function toggleStartBtn(playerId) {
+  const btn = document.getElementById(`mpstart-${playerId}`);
+  if (!btn) return;
+  const isStarter = btn.dataset.value === 'starter';
+  btn.dataset.value = isStarter ? 'sub' : 'starter';
+  btn.textContent   = isStarter ? '途中' : '先発';
+  btn.classList.toggle('is-starter', !isStarter);
+  btn.classList.toggle('is-sub',      isStarter);
 }
 
 function saveMatch() {
@@ -1374,8 +1654,10 @@ function saveMatch() {
   players.forEach(p => {
     const cb = document.getElementById(`mpcheck-${p.id}`);
     if (cb && cb.checked) {
+      const startBtn = document.getElementById(`mpstart-${p.id}`);
       matchPlayers.push({
         playerId: p.id,
+        start:   startBtn ? startBtn.dataset.value !== 'sub' : true,
         goals:   parseInt(document.getElementById(`mpg-${p.id}`).value)  || 0,
         assists: parseInt(document.getElementById(`mpa-${p.id}`).value)  || 0,
         minutes: parseInt(document.getElementById(`mpm-${p.id}`).value)  || 0,
@@ -1421,9 +1703,13 @@ function viewMatch(id) {
   const playerRows = (m.players || []).map(mp => {
     const p = players.find(x => x.id === mp.playerId);
     const name = p ? `#${p.number} ${escHtml(p.name)}` : '（削除済み）';
+    const startChip = mp.start === false
+      ? `<span class="detail-stat-chip" style="background:#fef9c3;color:#a16207;">途中出場</span>`
+      : `<span class="detail-stat-chip" style="background:#dcfce7;color:#15803d;">先発</span>`;
     return `
       <div class="detail-player-row">
         <span style="flex:1;font-size:14px;font-weight:600;">${name}</span>
+        ${startChip}
         <span class="detail-stat-chip">⚽ ${mp.goals}G</span>
         <span class="detail-stat-chip">🎯 ${mp.assists}A</span>
         <span class="detail-stat-chip">⏱ ${mp.minutes}分</span>
@@ -1660,17 +1946,37 @@ function renderPitchIcons() {
     const isAlly = icon.team === 'ally';
     const player = isAlly ? DB.getPlayers().find(p => p.id === icon.playerId) : null;
     const num  = isAlly ? (player ? player.number : '?') : icon.num;
-    const name = isAlly ? (player ? player.name.split(/\s/)[0] : '?') : '相手';
-    const color = isAlly ? pitchState.allyColor : pitchState.enemyColor;
+    const fullName = isAlly ? (player ? player.name : '?') : `相手${icon.num}`;
+    const name     = fullName.length > 4 ? fullName.slice(0, 4) : fullName;
+    const color    = isAlly ? pitchState.allyColor : pitchState.enemyColor;
     return `
       <div class="p-icon" id="picon-${icon.id}"
         style="left:${icon.px*100}%;top:${icon.py*100}%;background:${color};"
-        data-icon-id="${icon.id}">
+        data-icon-id="${icon.id}" data-tooltip="${escHtml(fullName)}">
         <div class="p-num">${num}</div>
         <div class="p-name">${escHtml(name)}</div>
       </div>`;
   }).join('');
   layer.querySelectorAll('.p-icon').forEach(el => attachPitchDrag(el));
+}
+
+// --- ゴースト ---
+function createDragGhost(color, num, name) {
+  removeDragGhost();
+  const g = document.createElement('div');
+  g.id = 'drag-ghost';
+  g.style.background = color;
+  g.innerHTML = `<div class="p-num">${num}</div><div class="p-name">${escHtml(name)}</div>`;
+  document.body.appendChild(g);
+  return g;
+}
+function removeDragGhost() {
+  const g = document.getElementById('drag-ghost');
+  if (g) g.remove();
+}
+function moveGhost(x, y) {
+  const g = document.getElementById('drag-ghost');
+  if (g) { g.style.left = x + 'px'; g.style.top = y + 'px'; }
 }
 
 // --- ドラッグ（ベンチ→ピッチ） ---
@@ -1685,6 +1991,13 @@ function attachBenchDrag(el, team) {
       startX: pt.clientX,
       startY: pt.clientY,
     };
+    // ゴースト生成
+    const numEl  = el.querySelector('.p-num');
+    const nameEl = el.querySelector('.p-name');
+    const color  = team === 'ally' ? pitchState.allyColor : pitchState.enemyColor;
+    createDragGhost(color, numEl ? numEl.textContent : '', nameEl ? nameEl.textContent : '');
+    moveGhost(pt.clientX, pt.clientY);
+
     document.addEventListener('mousemove', onBenchMove);
     document.addEventListener('touchmove', onBenchMove, { passive: false });
     document.addEventListener('mouseup',  onBenchEnd);
@@ -1694,10 +2007,15 @@ function attachBenchDrag(el, team) {
   el.addEventListener('touchstart', onStart, { passive: false });
 }
 
-function onBenchMove(e) { e.preventDefault(); }
+function onBenchMove(e) {
+  e.preventDefault();
+  const pt = e.touches ? e.touches[0] : e;
+  moveGhost(pt.clientX, pt.clientY);
+}
 
 function onBenchEnd(e) {
   if (!_dragCtx) return;
+  removeDragGhost();
   cleanup();
   const pt = e.changedTouches ? e.changedTouches[0] : e;
   const wrap = document.getElementById('pitch-wrap');
@@ -1747,13 +2065,25 @@ function onPitchMove(e) {
   const px = Math.max(0, Math.min(1, (pt.clientX - rect.left) / rect.width));
   const py = Math.max(0, Math.min(1, (pt.clientY - rect.top)  / rect.height));
   const el = document.getElementById(`picon-${_dragCtx.iconId}`);
-  if (el) { el.style.left = px*100+'%'; el.style.top = py*100+'%'; }
+  if (el) {
+    el.style.left = px*100+'%';
+    el.style.top  = py*100+'%';
+    el.style.opacity = '0.6';
+    el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.55)';
+    el.style.transform = 'translate(-50%,-50%) scale(1.15)';
+  }
   _dragCtx.lastPx = px; _dragCtx.lastPy = py;
   _dragCtx.moving = true;
 }
 
 function onPitchEnd(e) {
   if (!_dragCtx || !_dragCtx.iconId) { _dragCtx = null; cleanup(); return; }
+  const dragged = document.getElementById(`picon-${_dragCtx.iconId}`);
+  if (dragged) {
+    dragged.style.opacity = '';
+    dragged.style.boxShadow = '';
+    dragged.style.transform = '';
+  }
   cleanup();
   const pt = e.changedTouches ? e.changedTouches[0] : e;
   const wrap = document.getElementById('pitch-wrap');
@@ -1780,6 +2110,7 @@ function onPitchEnd(e) {
 }
 
 function cleanup() {
+  removeDragGhost();
   document.removeEventListener('mousemove', onBenchMove);
   document.removeEventListener('touchmove', onBenchMove);
   document.removeEventListener('mouseup',  onBenchEnd);
