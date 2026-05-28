@@ -778,6 +778,66 @@
       text-overflow: ellipsis; white-space: nowrap; margin-top: 1px;
     }
 
+    /* ===== ヘルプボタン ===== */
+    .help-btn {
+      margin-left: auto;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.6);
+      background: transparent;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .help-btn:hover { background: rgba(255,255,255,0.18); border-color: #fff; }
+
+    /* ===== ヘルプモーダルコンテンツ ===== */
+    .help-tab-item {
+      display: flex;
+      gap: 14px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .help-tab-item:last-child { border-bottom: none; }
+    .help-tab-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      width: 36px;
+      text-align: center;
+      line-height: 1;
+      padding-top: 2px;
+    }
+    .help-tab-body { flex: 1; min-width: 0; }
+    .help-tab-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+    }
+    .help-tab-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+    .help-tab-desc li {
+      list-style: none;
+      padding-left: 1em;
+      position: relative;
+    }
+    .help-tab-desc li::before {
+      content: '・';
+      position: absolute;
+      left: 0;
+      color: var(--primary-light);
+    }
+
     /* ===== スマホ調整 ===== */
     @media (max-width: 600px) {
       .tab-panel { padding: 14px; }
@@ -837,6 +897,7 @@
   <header>
     <span class="logo">⚽</span>
     <h1>THIS IS 監督</h1>
+    <button class="help-btn" onclick="openHelp()" title="使い方">?</button>
   </header>
 
   <!-- タブナビ -->
@@ -1220,6 +1281,74 @@
 </div>
 
 <!-- 削除確認モーダル -->
+<!-- ===== ヘルプモーダル ===== -->
+<div class="modal-overlay" id="help-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">使い方</span>
+      <button class="modal-close" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:8px;">
+      <div class="help-tab-item">
+        <div class="help-tab-icon">👥</div>
+        <div class="help-tab-body">
+          <div class="help-tab-name">選手管理</div>
+          <ul class="help-tab-desc">
+            <li>選手の名前・背番号・ポジション・備考を登録します</li>
+            <li>登録した選手はピッチ配置・試合記録で使用されます</li>
+            <li>「＋ 選手を追加」から追加、行の「編集」から変更できます</li>
+          </ul>
+        </div>
+      </div>
+      <div class="help-tab-item">
+        <div class="help-tab-icon">🟩</div>
+        <div class="help-tab-body">
+          <div class="help-tab-name">ピッチ配置</div>
+          <ul class="help-tab-desc">
+            <li>ベンチの選手アイコンをピッチへドラッグして配置します</li>
+            <li>ピッチ上のアイコンをドラッグして位置を変更できます</li>
+            <li>相手チームの選手も追加して対戦フォーメーションを確認できます</li>
+            <li>アイコンの色・形（丸/長方形）を変更できます</li>
+          </ul>
+        </div>
+      </div>
+      <div class="help-tab-item">
+        <div class="help-tab-icon">📋</div>
+        <div class="help-tab-body">
+          <div class="help-tab-name">試合記録</div>
+          <ul class="help-tab-desc">
+            <li>日付・対戦相手・スコア・試合総評を記録します</li>
+            <li>出場選手の先発/途中出場・出場時間・得点・アシストを入力できます</li>
+            <li>登録した試合は選手統計に自動で反映されます</li>
+          </ul>
+        </div>
+      </div>
+      <div class="help-tab-item">
+        <div class="help-tab-icon">📊</div>
+        <div class="help-tab-body">
+          <div class="help-tab-name">選手統計</div>
+          <ul class="help-tab-desc">
+            <li>試合記録から自動集計した個人成績を一覧表示します</li>
+            <li>出場試合数・出場時間・得点・アシストを確認できます</li>
+            <li>列見出しをクリックしてソートできます</li>
+          </ul>
+        </div>
+      </div>
+      <div class="help-tab-item">
+        <div class="help-tab-icon">💾</div>
+        <div class="help-tab-body">
+          <div class="help-tab-name">データ管理</div>
+          <ul class="help-tab-desc">
+            <li>全データをJSONファイルにエクスポートしてバックアップできます</li>
+            <li>エクスポートしたファイルを別端末でインポートして引き継げます</li>
+            <li>全データの削除もここから行えます</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal" style="max-width:360px;">
     <div class="modal-header">
@@ -2291,6 +2420,19 @@ function confirmClearAll() {
   };
   document.getElementById('confirm-modal').classList.add('open');
 }
+
+// ============================================================
+// ヘルプ
+// ============================================================
+function openHelp() {
+  document.getElementById('help-modal').classList.add('open');
+}
+function closeHelp() {
+  document.getElementById('help-modal').classList.remove('open');
+}
+document.getElementById('help-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('help-modal')) closeHelp();
+});
 
 // ============================================================
 // 初期化
