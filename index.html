@@ -884,6 +884,15 @@
       .mp-stats { width: 100%; justify-content: flex-end; padding-left: 46px; margin-top: 4px; }
       .mp-stat-input { width: 38px; }
       .mp-stat-input-wide { width: 44px; }
+
+      /* iOS Safari 自動ズーム防止: font-size 16px 未満のinputにフォーカスすると
+         Safariが自動ズームするため、モバイルでは16pxに引き上げる */
+      .form-control,
+      select.form-control,
+      input[type="number"].form-control,
+      .mp-stat-input,
+      .mp-stat-input-wide,
+      input[type="number"] { font-size: 16px; }
     }
   </style>
 </head>
