@@ -2183,19 +2183,21 @@ function attachBenchDrag(el, team) {
   const onStart = e => {
     e.preventDefault();
     const pt = e.touches ? e.touches[0] : e;
+    // タッチ位置とアイコン中心のズレを記録してゴーストを正確に重ねる
+    const ir = el.getBoundingClientRect();
+    const ox = (ir.left + ir.width  / 2) - pt.clientX;
+    const oy = (ir.top  + ir.height / 2) - pt.clientY;
     _dragCtx = {
       team,
       playerId: el.dataset.playerId || null,
       iconId:   el.dataset.iconId || null,
-      startX: pt.clientX,
-      startY: pt.clientY,
+      ox, oy,
     };
-    // ゴースト生成
     const numEl  = el.querySelector('.p-num');
     const nameEl = el.querySelector('.p-name');
     const color  = team === 'ally' ? pitchState.allyColor : pitchState.enemyColor;
     createDragGhost(color, numEl ? numEl.textContent : '', nameEl ? nameEl.textContent : '');
-    moveGhost(pt.clientX, pt.clientY);
+    moveGhost(pt.clientX + ox, pt.clientY + oy);
 
     document.addEventListener('mousemove', onBenchMove);
     document.addEventListener('touchmove', onBenchMove, { passive: false });
@@ -2209,7 +2211,7 @@ function attachBenchDrag(el, team) {
 function onBenchMove(e) {
   e.preventDefault();
   const pt = e.touches ? e.touches[0] : e;
-  moveGhost(pt.clientX, pt.clientY);
+  moveGhost(pt.clientX + _dragCtx.ox, pt.clientY + _dragCtx.oy);
 }
 
 function onBenchEnd(e) {
@@ -2219,8 +2221,9 @@ function onBenchEnd(e) {
   const pt = e.changedTouches ? e.changedTouches[0] : e;
   const wrap = document.getElementById('pitch-wrap');
   const rect = wrap.getBoundingClientRect();
-  const px = (pt.clientX - rect.left) / rect.width;
-  const py = (pt.clientY - rect.top)  / rect.height;
+  // ゴースト中心位置（= 指 + オフセット）をドロップ座標として使用
+  const px = (pt.clientX + _dragCtx.ox - rect.left) / rect.width;
+  const py = (pt.clientY + _dragCtx.oy - rect.top)  / rect.height;
 
   if (px < 0 || px > 1 || py < 0 || py > 1) { _dragCtx = null; return; }
 
@@ -2245,7 +2248,13 @@ function attachPitchDrag(el) {
   const onStart = e => {
     e.preventDefault();
     const pt = e.touches ? e.touches[0] : e;
-    _dragCtx = { iconId, startX: pt.clientX, startY: pt.clientY, moving: false };
+    const wrap = document.getElementById('pitch-wrap');
+    const rect = wrap.getBoundingClientRect();
+    const icon = pitchState.icons.find(i => i.id === iconId);
+    // タッチ位置とアイコン中心のズレを記録：ドラッグ中も相対位置を維持する
+    const ox = icon ? (rect.left + icon.px * rect.width  - pt.clientX) : 0;
+    const oy = icon ? (rect.top  + icon.py * rect.height - pt.clientY) : 0;
+    _dragCtx = { iconId, ox, oy, moving: false };
     document.addEventListener('mousemove', onPitchMove);
     document.addEventListener('touchmove', onPitchMove, { passive: false });
     document.addEventListener('mouseup',  onPitchEnd);
@@ -2261,8 +2270,8 @@ function onPitchMove(e) {
   const pt = e.touches ? e.touches[0] : e;
   const wrap = document.getElementById('pitch-wrap');
   const rect = wrap.getBoundingClientRect();
-  const px = Math.max(0, Math.min(1, (pt.clientX - rect.left) / rect.width));
-  const py = Math.max(0, Math.min(1, (pt.clientY - rect.top)  / rect.height));
+  const px = Math.max(0, Math.min(1, (pt.clientX + _dragCtx.ox - rect.left) / rect.width));
+  const py = Math.max(0, Math.min(1, (pt.clientY + _dragCtx.oy - rect.top)  / rect.height));
   const el = document.getElementById(`picon-${_dragCtx.iconId}`);
   if (el) {
     el.style.left = px*100+'%';
@@ -2287,8 +2296,8 @@ function onPitchEnd(e) {
   const pt = e.changedTouches ? e.changedTouches[0] : e;
   const wrap = document.getElementById('pitch-wrap');
   const rect = wrap.getBoundingClientRect();
-  const px = (pt.clientX - rect.left) / rect.width;
-  const py = (pt.clientY - rect.top)  / rect.height;
+  const px = (pt.clientX + (_dragCtx.ox || 0) - rect.left) / rect.width;
+  const py = (pt.clientY + (_dragCtx.oy || 0) - rect.top)  / rect.height;
   const icon = pitchState.icons.find(i => i.id === _dragCtx.iconId);
   if (!icon) { _dragCtx = null; return; }
 
