@@ -2225,7 +2225,6 @@ function _getTouch(e, touchId) {
 function attachBenchDrag(el, team) {
   const onStart = e => {
     if (_dragCtx) return;
-    if (e.touches && e.touches.length >= 2) return;
     e.preventDefault();
     const pt = e.changedTouches ? e.changedTouches[0] : e;
     _dragCtx = {
@@ -2250,12 +2249,6 @@ function attachBenchDrag(el, team) {
 }
 
 function onBenchMove(e) {
-  if (e.touches && e.touches.length >= 2) {
-    removeDragGhost();
-    cleanup();
-    _dragCtx = null;
-    return;
-  }
   e.preventDefault();
   const pt = _getTouch(e, _dragCtx?.touchId);
   if (!pt) return;
@@ -2329,7 +2322,6 @@ function attachPitchDrag(el) {
   const iconId = el.dataset.iconId;
   const onStart = e => {
     if (_dragCtx) return;
-    if (e.touches && e.touches.length >= 2) return;
     e.preventDefault();
     const pt = e.changedTouches ? e.changedTouches[0] : e;
     const wrap = document.getElementById('pitch-wrap');
@@ -2358,14 +2350,6 @@ function attachPitchDrag(el) {
 }
 
 function onPitchMove(e) {
-  if (e.touches && e.touches.length >= 2) {
-    const dragged = document.getElementById(`picon-${_dragCtx?.iconId}`);
-    if (dragged) { dragged.style.opacity = ''; dragged.style.boxShadow = ''; dragged.style.transform = ''; }
-    cleanup();
-    _dragCtx = null;
-    renderPitchIcons();
-    return;
-  }
   e.preventDefault();
   if (!_dragCtx || !_dragCtx.iconId) return;
   const pt = _getTouch(e, _dragCtx.touchId);
