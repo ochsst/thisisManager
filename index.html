@@ -754,6 +754,41 @@
     }
     .p-icon:hover::after { opacity: 1; }
 
+    /* ===== ピッチスクロールボタン（スマホのみ） ===== */
+    #pitch-scroll-btns {
+      display: none;
+    }
+    @media (max-width: 600px) {
+      #pitch-scroll-btns {
+        position: fixed;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #pitch-scroll-btns button {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0,0,0,0.45);
+        color: #fff;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        -webkit-tap-highlight-color: transparent;
+      }
+      #pitch-scroll-btns button:active {
+        background: rgba(0,0,0,0.7);
+      }
+    }
+
     /* ===== ボールアイコン ===== */
     .ball-icon {
       width: 36px;
@@ -1414,6 +1449,12 @@
 <!-- トーストコンテナ -->
 <div id="toast-container"></div>
 
+<!-- ピッチタブ用スクロールボタン（スマホのみ） -->
+<div id="pitch-scroll-btns" style="display:none;">
+  <button id="pitch-scroll-up"   onclick="window.scrollBy({top:-200,behavior:'smooth'})">▲</button>
+  <button id="pitch-scroll-down" onclick="window.scrollBy({top:200,behavior:'smooth'})">▼</button>
+</div>
+
 <script>
 // ============================================================
 // データストア
@@ -1526,6 +1567,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    const scrollBtns = document.getElementById('pitch-scroll-btns');
+    if (scrollBtns) scrollBtns.style.display = btn.dataset.tab === 'pitch' ? '' : 'none';
   });
 });
 
