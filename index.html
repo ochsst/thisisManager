@@ -734,7 +734,6 @@
     }
 
     /* ===== ピッチアイコン ツールチップ ===== */
-    .p-icon { position: relative; }
     .p-icon::after {
       content: attr(data-tooltip);
       position: absolute;
@@ -2221,19 +2220,19 @@ function onBenchMove(e) {
   if (!pt) return;
   moveGhost(pt.clientX, pt.clientY);
 
-  // ピッチ上を通過中の座標をリアルタイムで記録する
-  // → touchend座標は最終touchmove座標と微妙にずれるため、
-  //   ゴーストが見えていた最後の位置（=ユーザーの意図した場所）をここで保存する
+  // ピッチ上を通過中のビューポート座標を記録する（比率ではなく絶対px）
+  // → renderBench() でベンチ高さが変化すると pitch-wrap.top がずれるため、
+  //   比率をドロップ後に再計算できるよう viewport 座標で保持する
   const wrap = document.getElementById('pitch-wrap');
   if (wrap) {
     const rect = wrap.getBoundingClientRect();
     const rawPx = (pt.clientX - rect.left) / rect.width;
     const rawPy = (pt.clientY - rect.top)  / rect.height;
     if (rawPx >= 0 && rawPx <= 1 && rawPy >= 0 && rawPy <= 1) {
-      _dragCtx.lastPx = rawPx;
-      _dragCtx.lastPy = rawPy;
+      _dragCtx.lastClientX = pt.clientX;
+      _dragCtx.lastClientY = pt.clientY;
     } else {
-      _dragCtx.lastPx = null; // ピッチ外に出たらリセット
+      _dragCtx.lastClientX = null;
     }
   }
 }
@@ -2246,28 +2245,41 @@ function onBenchEnd(e) {
   cleanup();
 
   const wrap = document.getElementById('pitch-wrap');
-  let px, py;
 
-  if (_dragCtx.lastPx != null) {
-    // touchmoveで追跡済みの座標を使用（最も正確、touchend誤差・ベンチ高さ変化の両方を回避）
-    px = _dragCtx.lastPx;
-    py = _dragCtx.lastPy;
-  } else {
-    // ドラッグ中にピッチ上を通過しなかった場合のフォールバック
-    const rect = wrap.getBoundingClientRect();
-    px = (pt.clientX - rect.left) / rect.width;
-    py = (pt.clientY - rect.top)  / rect.height;
-    if (px < 0 || px > 1 || py < 0 || py > 1) { _dragCtx = null; return; }
-  }
+  // ビューポート座標を確定（lastClientX が null の場合は touchend 座標にフォールバック）
+  const clientX = _dragCtx.lastClientX ?? pt.clientX;
+  const clientY = _dragCtx.lastClientY ?? pt.clientY;
+
+  // step1: pitchState を先に更新してからベンチ再描画する
+  //        （先に renderBench するとアイコン未追加のためベンチに選手が残り2重になる）
+  const rectBefore = wrap.getBoundingClientRect();
+  const pxBefore = (clientX - rectBefore.left) / rectBefore.width;
+  const pyBefore = (clientY - rectBefore.top)  / rectBefore.height;
+  if (pxBefore < 0 || pxBefore > 1 || pyBefore < 0 || pyBefore > 1) { _dragCtx = null; return; }
 
   if (_dragCtx.team === 'ally') {
-    pitchState.icons.push({ id: uuid(), team: 'ally', playerId: _dragCtx.playerId, loc: 'pitch', px, py });
+    pitchState.icons.push({ id: uuid(), team: 'ally', playerId: _dragCtx.playerId, loc: 'pitch', px: pxBefore, py: pyBefore });
   } else {
     const icon = pitchState.icons.find(i => i.id === _dragCtx.iconId);
-    if (icon) { icon.loc = 'pitch'; icon.px = px; icon.py = py; }
+    if (icon) { icon.loc = 'pitch'; icon.px = pxBefore; icon.py = pyBefore; }
   }
+
+  // step2: ベンチ再描画（ここで pitch-wrap.top が変わる場合がある）
+  renderBench(); renderEnemyBench();
+
+  // step3: 再描画後の rect で px/py を再計算し修正する
+  const rectAfter = wrap.getBoundingClientRect();
+  const pxAfter = (clientX - rectAfter.left) / rectAfter.width;
+  const pyAfter = (clientY - rectAfter.top)  / rectAfter.height;
+
+  const placedIcon = _dragCtx.team === 'ally'
+    ? pitchState.icons[pitchState.icons.length - 1]
+    : pitchState.icons.find(i => i.id === _dragCtx.iconId);
+  if (placedIcon) { placedIcon.px = pxAfter; placedIcon.py = pyAfter; }
+
   PITCH.save(pitchState);
-  renderBench(); renderEnemyBench(); renderPitchIcons();
+  renderPitchIcons();
+
   _dragCtx = null;
 }
 
@@ -2290,6 +2302,7 @@ function attachPitchDrag(el) {
       iconId,
       touchId: pt.identifier ?? -1,
       lastX: pt.clientX, lastY: pt.clientY,
+      startX: pt.clientX, startY: pt.clientY,
       px, py,
       moving: false, outside: false,
     };
@@ -2318,7 +2331,9 @@ function onPitchMove(e) {
   _dragCtx.lastX = pt.clientX; _dragCtx.lastY = pt.clientY;
   _dragCtx.px = px; _dragCtx.py = py;
   _dragCtx.outside = rawPx < 0 || rawPx > 1 || rawPy < 0 || rawPy > 1;
-  _dragCtx.moving = true;
+  const dx = pt.clientX - _dragCtx.startX;
+  const dy = pt.clientY - _dragCtx.startY;
+  if (Math.hypot(dx, dy) > 5) _dragCtx.moving = true;
 
   const el = document.getElementById(`picon-${_dragCtx.iconId}`);
   if (el) {
