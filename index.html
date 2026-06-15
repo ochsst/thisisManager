@@ -2193,23 +2193,18 @@ function attachBenchDrag(el, team) {
   const onStart = e => {
     if (_dragCtx) return; // 別のドラッグが進行中なら無視（手のひら誤タッチ対策）
     e.preventDefault();
-    // changedTouches[0] = 今触れた指（touches[0]は既存の別の指の場合がある）
     const pt = e.changedTouches ? e.changedTouches[0] : e;
-    const ir = el.getBoundingClientRect();
-    const ox = (ir.left + ir.width  / 2) - pt.clientX;
-    const oy = (ir.top  + ir.height / 2) - pt.clientY;
     _dragCtx = {
       team,
       playerId: el.dataset.playerId || null,
       iconId:   el.dataset.iconId || null,
       touchId: pt.identifier ?? -1,
-      ox, oy,
     };
     const numEl  = el.querySelector('.p-num');
     const nameEl = el.querySelector('.p-name');
     const color  = team === 'ally' ? pitchState.allyColor : pitchState.enemyColor;
     createDragGhost(color, numEl ? numEl.textContent : '', nameEl ? nameEl.textContent : '');
-    moveGhost(pt.clientX + ox, pt.clientY + oy);
+    moveGhost(pt.clientX, pt.clientY);
 
     document.addEventListener('mousemove', onBenchMove);
     document.addEventListener('touchmove', onBenchMove, { passive: false });
@@ -2224,7 +2219,7 @@ function onBenchMove(e) {
   e.preventDefault();
   const pt = _getTouch(e, _dragCtx?.touchId);
   if (!pt) return;
-  moveGhost(pt.clientX + _dragCtx.ox, pt.clientY + _dragCtx.oy);
+  moveGhost(pt.clientX, pt.clientY);
 }
 
 function onBenchEnd(e) {
@@ -2235,8 +2230,9 @@ function onBenchEnd(e) {
   cleanup();
   const wrap = document.getElementById('pitch-wrap');
   const rect = wrap.getBoundingClientRect();
-  const px = (pt.clientX + _dragCtx.ox - rect.left) / rect.width;
-  const py = (pt.clientY + _dragCtx.oy - rect.top)  / rect.height;
+  // ドロップ位置 = 指を離した座標（オフセットなし）
+  const px = (pt.clientX - rect.left) / rect.width;
+  const py = (pt.clientY - rect.top)  / rect.height;
 
   if (px < 0 || px > 1 || py < 0 || py > 1) { _dragCtx = null; return; }
 
