@@ -2220,6 +2220,22 @@ function onBenchMove(e) {
   const pt = _getTouch(e, _dragCtx?.touchId);
   if (!pt) return;
   moveGhost(pt.clientX, pt.clientY);
+
+  // ピッチ上を通過中の座標をリアルタイムで記録する
+  // → touchend座標は最終touchmove座標と微妙にずれるため、
+  //   ゴーストが見えていた最後の位置（=ユーザーの意図した場所）をここで保存する
+  const wrap = document.getElementById('pitch-wrap');
+  if (wrap) {
+    const rect = wrap.getBoundingClientRect();
+    const rawPx = (pt.clientX - rect.left) / rect.width;
+    const rawPy = (pt.clientY - rect.top)  / rect.height;
+    if (rawPx >= 0 && rawPx <= 1 && rawPy >= 0 && rawPy <= 1) {
+      _dragCtx.lastPx = rawPx;
+      _dragCtx.lastPy = rawPy;
+    } else {
+      _dragCtx.lastPx = null; // ピッチ外に出たらリセット
+    }
+  }
 }
 
 function onBenchEnd(e) {
@@ -2229,39 +2245,29 @@ function onBenchEnd(e) {
   removeDragGhost();
   cleanup();
 
-  const fingerX = pt.clientX;
-  const fingerY = pt.clientY;
   const wrap = document.getElementById('pitch-wrap');
+  let px, py;
 
-  // 事前チェック：指がピッチ範囲内か（レンダリング前のrectで判定）
-  const r0 = wrap.getBoundingClientRect();
-  if (fingerX < r0.left || fingerX > r0.right ||
-      fingerY < r0.top  || fingerY > r0.bottom) { _dragCtx = null; return; }
-
-  // ステートに先にアイコンを追加（ベンチ再描画がこれを参照するため）
-  let newId;
-  if (_dragCtx.team === 'ally') {
-    newId = uuid();
-    pitchState.icons.push({ id: newId, team: 'ally', playerId: _dragCtx.playerId, loc: 'pitch', px: 0.5, py: 0.5 });
+  if (_dragCtx.lastPx != null) {
+    // touchmoveで追跡済みの座標を使用（最も正確、touchend誤差・ベンチ高さ変化の両方を回避）
+    px = _dragCtx.lastPx;
+    py = _dragCtx.lastPy;
   } else {
-    const icon = pitchState.icons.find(i => i.id === _dragCtx.iconId);
-    if (icon) { icon.loc = 'pitch'; newId = icon.id; }
+    // ドラッグ中にピッチ上を通過しなかった場合のフォールバック
+    const rect = wrap.getBoundingClientRect();
+    px = (pt.clientX - rect.left) / rect.width;
+    py = (pt.clientY - rect.top)  / rect.height;
+    if (px < 0 || px > 1 || py < 0 || py > 1) { _dragCtx = null; return; }
   }
 
-  // ベンチを先に再描画する
-  // → ベンチの高さ変化によりピッチ位置がずれる前にrectを取ると誤差が生じるため
-  renderBench(); renderEnemyBench();
-
-  // ベンチ再描画後のピッチ位置で座標を計算（レイアウト確定後）
-  const r1 = wrap.getBoundingClientRect();
-  const px = Math.max(0, Math.min(1, (fingerX - r1.left) / r1.width));
-  const py = Math.max(0, Math.min(1, (fingerY - r1.top)  / r1.height));
-
-  const icon = pitchState.icons.find(i => i.id === newId);
-  if (icon) { icon.px = px; icon.py = py; }
-
+  if (_dragCtx.team === 'ally') {
+    pitchState.icons.push({ id: uuid(), team: 'ally', playerId: _dragCtx.playerId, loc: 'pitch', px, py });
+  } else {
+    const icon = pitchState.icons.find(i => i.id === _dragCtx.iconId);
+    if (icon) { icon.loc = 'pitch'; icon.px = px; icon.py = py; }
+  }
   PITCH.save(pitchState);
-  renderPitchIcons();
+  renderBench(); renderEnemyBench(); renderPitchIcons();
   _dragCtx = null;
 }
 
