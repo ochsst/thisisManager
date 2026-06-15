@@ -2178,12 +2178,22 @@ function moveGhost(x, y) {
   if (g) { g.style.left = x + 'px'; g.style.top = y + 'px'; }
 }
 
+// タッチイベントから正しい指を取得するヘルパー
+// changedTouches[0] を使い複数指でも意図した指だけ追跡する
+function _getTouch(e, touchId) {
+  if (!e.changedTouches) return e;
+  if (touchId == null) return e.changedTouches[0];
+  return Array.from(e.changedTouches).find(t => t.identifier === touchId)
+      || Array.from(e.touches).find(t => t.identifier === touchId)
+      || null;
+}
+
 // --- ドラッグ（ベンチ→ピッチ） ---
 function attachBenchDrag(el, team) {
   const onStart = e => {
     e.preventDefault();
-    const pt = e.touches ? e.touches[0] : e;
-    // タッチ位置とアイコン中心のズレを記録してゴーストを正確に重ねる
+    // changedTouches[0] = 今触れた指（touches[0]は既存の別の指の場合がある）
+    const pt = e.changedTouches ? e.changedTouches[0] : e;
     const ir = el.getBoundingClientRect();
     const ox = (ir.left + ir.width  / 2) - pt.clientX;
     const oy = (ir.top  + ir.height / 2) - pt.clientY;
@@ -2191,6 +2201,7 @@ function attachBenchDrag(el, team) {
       team,
       playerId: el.dataset.playerId || null,
       iconId:   el.dataset.iconId || null,
+      touchId: pt.identifier ?? -1,
       ox, oy,
     };
     const numEl  = el.querySelector('.p-num');
@@ -2210,18 +2221,19 @@ function attachBenchDrag(el, team) {
 
 function onBenchMove(e) {
   e.preventDefault();
-  const pt = e.touches ? e.touches[0] : e;
+  const pt = _getTouch(e, _dragCtx?.touchId);
+  if (!pt) return;
   moveGhost(pt.clientX + _dragCtx.ox, pt.clientY + _dragCtx.oy);
 }
 
 function onBenchEnd(e) {
   if (!_dragCtx) return;
+  const pt = _getTouch(e, _dragCtx.touchId);
+  if (!pt) return;
   removeDragGhost();
   cleanup();
-  const pt = e.changedTouches ? e.changedTouches[0] : e;
   const wrap = document.getElementById('pitch-wrap');
   const rect = wrap.getBoundingClientRect();
-  // ゴースト中心位置（= 指 + オフセット）をドロップ座標として使用
   const px = (pt.clientX + _dragCtx.ox - rect.left) / rect.width;
   const py = (pt.clientY + _dragCtx.oy - rect.top)  / rect.height;
 
@@ -2247,17 +2259,21 @@ function attachPitchDrag(el) {
   const iconId = el.dataset.iconId;
   const onStart = e => {
     e.preventDefault();
-    const pt = e.touches ? e.touches[0] : e;
-    const icon = pitchState.icons.find(i => i.id === iconId);
-    // デルタ方式: 絶対座標変換を使わず「指の移動量」をそのまま加算する
-    // これにより選手の位置によらず一定のズレで追従する
+    const pt = e.changedTouches ? e.changedTouches[0] : e;
+    const wrap = document.getElementById('pitch-wrap');
+    const rect = wrap.getBoundingClientRect();
+    // touchstart時点の指の位置にアイコン中心をスナップ（ズレをリセット）
+    // その後はデルタ方式で追従するため、ドラッグ中は指=アイコン中心になる
+    const px = Math.max(0, Math.min(1, (pt.clientX - rect.left) / rect.width));
+    const py = Math.max(0, Math.min(1, (pt.clientY - rect.top)  / rect.height));
+    el.style.left = px * 100 + '%';
+    el.style.top  = py * 100 + '%';
     _dragCtx = {
       iconId,
+      touchId: pt.identifier ?? -1,
       lastX: pt.clientX, lastY: pt.clientY,
-      px: icon ? icon.px : 0.5,
-      py: icon ? icon.py : 0.5,
-      moving: false,
-      outside: false,
+      px, py,
+      moving: false, outside: false,
     };
     document.addEventListener('mousemove', onPitchMove);
     document.addEventListener('touchmove', onPitchMove, { passive: false });
@@ -2271,7 +2287,8 @@ function attachPitchDrag(el) {
 function onPitchMove(e) {
   e.preventDefault();
   if (!_dragCtx || !_dragCtx.iconId) return;
-  const pt = e.touches ? e.touches[0] : e;
+  const pt = _getTouch(e, _dragCtx.touchId);
+  if (!pt) return;
   const wrap = document.getElementById('pitch-wrap');
   const rect = wrap.getBoundingClientRect();
 
@@ -2297,6 +2314,8 @@ function onPitchMove(e) {
 
 function onPitchEnd(e) {
   if (!_dragCtx || !_dragCtx.iconId) { _dragCtx = null; cleanup(); return; }
+  const pt = _getTouch(e, _dragCtx.touchId);
+  if (!pt) return;
   const dragged = document.getElementById(`picon-${_dragCtx.iconId}`);
   if (dragged) {
     dragged.style.opacity = '';
@@ -2308,7 +2327,6 @@ function onPitchEnd(e) {
   if (!icon) { _dragCtx = null; return; }
 
   if (_dragCtx.moving && _dragCtx.outside) {
-    // ピッチ外へドラッグ → ベンチに戻す
     if (icon.team === 'ally') {
       pitchState.icons = pitchState.icons.filter(i => i.id !== icon.id);
     } else {
