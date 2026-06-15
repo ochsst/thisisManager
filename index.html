@@ -2191,6 +2191,7 @@ function _getTouch(e, touchId) {
 // --- ドラッグ（ベンチ→ピッチ） ---
 function attachBenchDrag(el, team) {
   const onStart = e => {
+    if (_dragCtx) return; // 別のドラッグが進行中なら無視（手のひら誤タッチ対策）
     e.preventDefault();
     // changedTouches[0] = 今触れた指（touches[0]は既存の別の指の場合がある）
     const pt = e.changedTouches ? e.changedTouches[0] : e;
@@ -2258,6 +2259,7 @@ function onBenchEnd(e) {
 function attachPitchDrag(el) {
   const iconId = el.dataset.iconId;
   const onStart = e => {
+    if (_dragCtx) return; // 別のドラッグが進行中なら無視（手のひら誤タッチ対策）
     e.preventDefault();
     const pt = e.changedTouches ? e.changedTouches[0] : e;
     const wrap = document.getElementById('pitch-wrap');
