@@ -754,6 +754,21 @@
     }
     .p-icon:hover::after { opacity: 1; }
 
+    /* ===== ボールアイコン ===== */
+    .ball-icon {
+      width: 36px;
+      height: 36px;
+      background: transparent !important;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+      cursor: grab;
+    }
+
     /* ===== ドラッグゴースト ===== */
     #drag-ghost {
       position: fixed;
@@ -1006,6 +1021,7 @@
           <div class="card" style="padding:14px;">
             <div style="display:flex;flex-direction:column;gap:8px;">
               <button class="btn btn-ghost btn-sm" id="icon-shape-btn" onclick="toggleIconShape()" style="width:100%;">□ 長方形に切替</button>
+              <button class="btn btn-ghost btn-sm" id="ball-toggle-btn" onclick="toggleBall()" style="width:100%;">⚽ ボールを表示</button>
               <button class="btn btn-ghost btn-sm" onclick="addEnemyIcon()" style="width:100%;">＋ 相手選手を追加</button>
               <button class="btn btn-danger btn-sm" onclick="confirmPitchReset()" style="width:100%;">🔄 ピッチをリセット</button>
             </div>
@@ -2053,7 +2069,7 @@ const PITCH = {
   },
   save(state) { localStorage.setItem(this.KEY, JSON.stringify(state)); },
   defaults() {
-    return { allyColor: '#2563eb', enemyColor: '#dc2626', icons: [] };
+    return { allyColor: '#2563eb', enemyColor: '#dc2626', icons: [], ball: { visible: false, px: 0.5, py: 0.5 } };
   }
 };
 
@@ -2071,6 +2087,9 @@ function toggleIconShape() {
 function initPitch() {
   document.getElementById('ally-color-picker').value  = pitchState.allyColor;
   document.getElementById('enemy-color-picker').value = pitchState.enemyColor;
+  if (!pitchState.ball) pitchState.ball = { visible: false, px: 0.5, py: 0.5 };
+  const btn = document.getElementById('ball-toggle-btn');
+  if (btn) btn.textContent = pitchState.ball.visible ? '⚽ ボールを非表示' : '⚽ ボールを表示';
   renderBench();
   renderEnemyBench();
   renderPitchIcons();
@@ -2138,6 +2157,11 @@ function addEnemyIcon() {
 function renderPitchIcons() {
   const layer = document.getElementById('pitch-icons-layer');
   const onPitch = pitchState.icons.filter(i => i.loc === 'pitch');
+  const ball = pitchState.ball || { visible: false, px: 0.5, py: 0.5 };
+  const ballHtml = ball.visible ? `
+    <div class="p-icon ball-icon" id="picon-ball"
+      style="left:${ball.px*100}%;top:${ball.py*100}%;"
+      data-icon-id="ball" data-tooltip="ボール">⚽</div>` : '';
   layer.innerHTML = onPitch.map(icon => {
     const isAlly = icon.team === 'ally';
     const player = isAlly ? DB.getPlayers().find(p => p.id === icon.playerId) : null;
@@ -2154,8 +2178,17 @@ function renderPitchIcons() {
         <div class="p-num">${num}</div>
         <div class="p-name">${escHtml(name)}</div>
       </div>`;
-  }).join('');
+  }).join('') + ballHtml;
   layer.querySelectorAll('.p-icon').forEach(el => attachPitchDrag(el));
+}
+
+function toggleBall() {
+  if (!pitchState.ball) pitchState.ball = { visible: false, px: 0.5, py: 0.5 };
+  pitchState.ball.visible = !pitchState.ball.visible;
+  PITCH.save(pitchState);
+  const btn = document.getElementById('ball-toggle-btn');
+  if (btn) btn.textContent = pitchState.ball.visible ? '⚽ ボールを非表示' : '⚽ ボールを表示';
+  renderPitchIcons();
 }
 
 // --- ゴースト ---
@@ -2356,6 +2389,17 @@ function onPitchEnd(e) {
     dragged.style.transform = '';
   }
   cleanup();
+  if (_dragCtx.iconId === 'ball') {
+    if (_dragCtx.moving && !_dragCtx.outside) {
+      pitchState.ball.px = _dragCtx.px;
+      pitchState.ball.py = _dragCtx.py;
+    }
+    PITCH.save(pitchState);
+    renderPitchIcons();
+    _dragCtx = null;
+    return;
+  }
+
   const icon = pitchState.icons.find(i => i.id === _dragCtx.iconId);
   if (!icon) { _dragCtx = null; return; }
 
